@@ -1,0 +1,56 @@
+{
+  "name": "@danieldietrich/copy",
+  "version": "0.0.0",
+  "description": "Simple yet powerful copy tool.",
+  "keywords": [
+    "copy",
+    "dir",
+    "directory",
+    "file",
+    "files",
+    "folder",
+    "recursive",
+    "symlink",
+    "typed",
+    "types",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -fr dist",
+    "build": "npm run clean && npm run lint  && tsc --project tsconfig.build.json",
+    "lint": "tslint --project tsconfig.json",
+    "prepare": "npm test && npm run build",
+    "test": "jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danieldietrich/copy"
+  },
+  "homepage": "https://github.com/danieldietrich/copy",
+  "bugs": "https://github.com/danieldietrich/copy/issues",
+  "author": {
+    "name": "Daniel Dietrich",
+    "email": "cafebab3@gmail.com",
+    "url": "https://danieldietrich.dev"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.18",
+    "@types/node": "^12.7.5",
+    "@types/rimraf": "^2.0.2",
+    "codecov": "^3.5.0",
+    "jest": "^24.9.0",
+    "rimraf": "^3.0.0",
+    "ts-jest": "^24.1.0",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.3"
+  }
+}
