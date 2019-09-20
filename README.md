@@ -36,13 +36,13 @@ npm i @danieldietrich/copy
 The module supports ES6 _import_ and CommonJS _require_ style.
 
 ```ts
-import copy from 'copy';
+import copy from '@danieldietrich/copy';
 
 example();
 
 setTimeout(() => console.log('Done.'), 3210);
 
-// Performs a dry run of copying ./node_modules/ to ./temp
+// Performs a dry run of copying ./node_modules to ./temp
 async function example() {
     const totals = await copy('node_modules', 'temp', { dryRun: true });
     console.log('Totals:', totals);
@@ -102,17 +102,19 @@ type Totals = {
 
 Copy is a superset of fs-extra/copy. Option names and default values correspond to fs-extra/copy options.
 
-| Option | copy| fs-extra |
-| -- | -- | -- |
-| <tt>overwrite</tt> | ✅ Preserves exising files when set to <tt>false</tt>. Default: <tt>true</tt> | ✅ |
-| <tt>errorOnExist</tt> | ✅ Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> | ✅ |
-| <tt>dereference</tt> | ✅ Copies files if <tt>true</tt> Default: <tt>false</tt> | ✅ |
-| <tt>preserveTimestamps</tt> | ✅ Preserves the original timestamps | ✅ |
-| <tt>chown</tt> | ✅ A uid. Changes the owner (preserved by default). | |
-| <tt>chgrp</tt> | ✅ A gid. Changes the group (preserved by default). | |
-| <tt>dryRun</tt> | ✅ Does not perform any write operations. | |
-| <tt>filter</tt> | ✅ Excludes files when returning <tt>false</tt>, otherwise copies them. | ✅ |
-| <tt>transform</tt> | ✅ Transforms file contents | |
+| Option | copy|
+| -- | -- |
+| <tt>overwrite</tt> | Preserves exising files when set to <tt>false</tt>. Default: <tt>true</tt> |
+| <tt>errorOnExist</tt> | Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> |
+| <tt>dereference</tt> | Copies files if <tt>true</tt>. Default: <tt>false</tt> |
+| <tt>preserveTimestamps</tt> | Preserves the original timestamps. Default: <tt>false</tt> |
+| <tt>chown</tt><sup>*)</sup> | A UID number. Changes the owner (preserved by default). |
+| <tt>chgrp</tt><sup>*)</sup> | A GID. Changes the group (preserved by default). |
+| <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. Default: <tt>false</tt> |
+| <tt>filter</tt> | Optional filter, sync or async. Files are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path as <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path as <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+
+*) fs-extra does not have this feature
 
 ---
 
