@@ -3,14 +3,18 @@
   "version": "0.1.2",
   "description": "Simple yet powerful copy tool.",
   "keywords": [
+    "chgrp",
+    "chown",
     "copy",
     "dir",
     "directory",
     "file",
     "files",
+    "filter",
     "folder",
     "recursive",
     "symlink",
+    "transform",
     "typed",
     "types",
     "typescript"
