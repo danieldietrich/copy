@@ -76,7 +76,7 @@ The copy tool intentionally does not
 The general signature of _copy_ is:
 
 ```ts
-async function copy(source: string, target: string, options: Options?): Promise<Totals>;
+async function copy(source: string, target: string, options?: Options): Promise<Totals>;
 
 type Options = {
     overwrite?: boolean;
@@ -108,11 +108,11 @@ Copy is a superset of fs-extra/copy. Option names and default values correspond 
 | <tt>errorOnExist</tt> | Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> |
 | <tt>dereference</tt> | Copies files if <tt>true</tt>. Default: <tt>false</tt> |
 | <tt>preserveTimestamps</tt> | Preserves the original timestamps. Default: <tt>false</tt> |
-| <tt>chown</tt><sup>*)</sup> | A UID number. Changes the owner (preserved by default). |
-| <tt>chgrp</tt><sup>*)</sup> | A GID. Changes the group (preserved by default). |
+| <tt>chown</tt><sup>*)</sup> | A [uid](https://en.wikipedia.org/wiki/User_identifier). Changes the owner (preserved by default). |
+| <tt>chgrp</tt><sup>*)</sup> | A [gid](https://en.wikipedia.org/wiki/Group_identifier). Changes the group (preserved by default). |
 | <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. Default: <tt>false</tt> |
-| <tt>filter</tt> | Optional filter, sync or async. Files are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path as <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
-| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path as <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 
 *) fs-extra does not have this feature
 
