@@ -2,26 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
-// compatible to fs-extra.copy
-type Options = {
-    overwrite?: boolean;
-    errorOnExist?: boolean;
-    dereference?: boolean;
-    preserveTimestamps?: boolean;
-    chown?: number;
-    chgrp?: number;
-    dryRun?: boolean;
-    filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
-    transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
-};
-
-type Totals = {
-    directories: number;
-    files: number;
-    symlinks: number;
-    size: number; // not size on disk in blocks
-};
-
 /**
  * Recursively copies a path.
  *
@@ -30,7 +10,7 @@ type Totals = {
  * @options copy options
  * @returns a new Promise which is resolved with totals or rejected with an error
  */
-export = async function copy(sourcePath: string, targetPath: string, options?: Options): Promise<Totals> {
+async function copy(sourcePath: string, targetPath: string, options?: copy.Options): Promise<copy.Totals> {
 
     // promisify all the things as long as fs.promises is stage-1 experimental
     const lchown = promisify(fs.lchown);
@@ -46,7 +26,7 @@ export = async function copy(sourcePath: string, targetPath: string, options?: O
     const writeFile = promisify(fs.writeFile);
 
     // same defaults as fs-extra.copy
-    const defaultOptions: Options = {
+    const defaultOptions: copy.Options = {
         overwrite: true,
         errorOnExist: false,
         dereference: false,
@@ -155,4 +135,29 @@ export = async function copy(sourcePath: string, targetPath: string, options?: O
 
     // [files, directories, symlinks, size]
     type SubTotals = [number, number, number, number];
-};
+}
+
+namespace copy {
+
+    // compatible to fs-extra.copy
+    export type Options = {
+        overwrite?: boolean;
+        errorOnExist?: boolean;
+        dereference?: boolean;
+        preserveTimestamps?: boolean;
+        chown?: number;
+        chgrp?: number;
+        dryRun?: boolean;
+        filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
+        transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
+    };
+
+    export type Totals = {
+        directories: number;
+        files: number;
+        symlinks: number;
+        size: number; // not size on disk in blocks
+    };
+}
+
+export = copy;
