@@ -1,6 +1,6 @@
-import copy from '.';
-import fs from 'fs';
-import rimraf from 'rimraf';
+import * as copy from '.';
+import * as fs from 'fs';
+import * as rimraf from 'rimraf';
 import { promisify } from 'util';
 
 // promisify all the things as long as fs.promises is stage-1 experimental
