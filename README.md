@@ -1,8 +1,10 @@
-[![npm version](https://img.shields.io/npm/v/@danieldietrich/copy?logo=npm&style=flat-square)](https://www.npmjs.com/package/@danieldietrich/copy/)[![vulnerabilities](https://img.shields.io/snyk/vulnerabilities/npm/@danieldietrich/copy?style=flat-square)](https://snyk.io/test/npm/@danieldietrich/copy)[![minzipped size](https://img.shields.io/bundlephobia/minzip/@danieldietrich/copy?style=flat-square)](https://bundlephobia.com/result?p=@danieldietrich/copy@latest)![types](https://img.shields.io/npm/types/typescript?style=flat-square)[![license](https://img.shields.io/github/license/danieldietrich/copy?style=flat-square)](https://opensource.org/licenses/MIT/)
+[![npm version](https://img.shields.io/npm/v/@danieldietrich/copy?logo=npm&style=flat-square)](https://www.npmjs.com/package/@danieldietrich/copy/)[![vulnerabilities](https://img.shields.io/snyk/vulnerabilities/npm/@danieldietrich/copy?style=flat-square)](https://snyk.io/test/npm/@danieldietrich/copy)[![minzipped size](https://img.shields.io/bundlephobia/minzip/@danieldietrich/copy?style=flat-square)](https://bundlephobia.com/result?p=@danieldietrich/copy@latest)
 &nbsp;
 [![build](https://img.shields.io/travis/danieldietrich/copy?logo=github&style=flat-square)](https://travis-ci.org/danieldietrich/copy/)[![coverage](https://img.shields.io/codecov/c/github/danieldietrich/copy?style=flat-square)](https://codecov.io/gh/danieldietrich/copy/)
 &nbsp;
-[![donate](https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal&style=flat-square)](https://paypal.me/danieldietrich13)[![patrons](https://img.shields.io/liberapay/patrons/danieldietrich?style=flat-square)](https://liberapay.com/danieldietrich/)
+![Platform](https://img.shields.io/badge/platform-Node%20v10%20%28ES6%2fES2015%29-decc47?logo=TypeScript&style=flat-square)
+&nbsp;
+[![donate](https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal&style=flat-square)](https://paypal.me/danieldietrich13)[![patrons](https://img.shields.io/liberapay/patrons/danieldietrich?style=flat-square)](https://liberapay.com/danieldietrich/)[![license](https://img.shields.io/github/license/danieldietrich/copy?style=flat-square)](https://opensource.org/licenses/MIT/)
 &nbsp;
 [![Follow](https://img.shields.io/twitter/follow/danieldietrich?label=Follow&style=social)](https://twitter.com/danieldietrich/)
 
