@@ -68,7 +68,6 @@ The copy tool intentionally does not
 
 * provide a synchronous API
 * check for cycles, i.e. if the destination is a subdirectory of the source
-* create multiple directories like mkdir -p if the destination does not exist
 * provide an API to rename or move paths
 * provide a transform API based on streams and chunks
 * preserve the timestamp of links (because node does not provide an OS independent API for that purpose)

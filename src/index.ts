@@ -84,7 +84,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
 
     async function cpDir(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined, subTotals: SubTotals) {
         if (!dryRun && !targetStats) {
-            await mkdir(target, { mode: sourceStats.mode });
+            await mkdir(target, { recursive: true, mode: sourceStats.mode });
         }
         await Promise.all( // much faster than for-of loop
             (await readdir(source)).map(async child =>

@@ -30,6 +30,14 @@ describe('Basic behavior', () => {
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
     });
 
+    /* TODO: fs.mkdir(path, { recursive: true }) should work with node 10.15.1+ but it doesn't
+    test('Should recursively create non-existing target directory', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst/sub/sub/sub`);
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+    });
+    */
+
 });
 
 describe('Options.overwrite', () => {
