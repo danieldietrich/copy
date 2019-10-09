@@ -189,7 +189,7 @@ describe('Options.filter', () => {
 
     test('Should filter links sync', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats, targetStats) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats) => {
             return !sourceStats.isSymbolicLink();
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 0, size: 11 });
@@ -197,7 +197,7 @@ describe('Options.filter', () => {
 
     test('Should filter links async', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats, targetStats) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats) => {
             return Promise.resolve(!sourceStats.isSymbolicLink());
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 0, size: 11 });
@@ -205,14 +205,14 @@ describe('Options.filter', () => {
 
     test('Should rethrow filter failure sync', async () => {
         const tmp = await tempDir();
-        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats, targetStats) => {
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { filter: () => {
             throw Error('💩');
         }})).rejects.toThrow(Error('💩'));
     });
 
     test('Should rethrow filter failure async', async () => {
         const tmp = await tempDir();
-        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats, targetStats) => {
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { filter: () => {
             return Promise.reject(Error('💩'));
         }})).rejects.toThrow(Error('💩'));
     });
@@ -223,7 +223,7 @@ describe('Options.transform', () => {
 
     test('Should transform file sync', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target, sourceStats, targetStats) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
             if (target.endsWith('/f3')) {
                 return Buffer.from("3️⃣", 'utf8');
             } else {
@@ -235,7 +235,7 @@ describe('Options.transform', () => {
 
     test('Should transform file async', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target, sourceStats, targetStats) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
             if (target.endsWith('/f3')) {
                 return Promise.resolve(Buffer.from("3️⃣", 'utf8'));
             } else {
@@ -247,14 +247,14 @@ describe('Options.transform', () => {
 
     test('Should rethrow transform failure sync', async () => {
         const tmp = await tempDir();
-        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target, sourceStats, targetStats) => {
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { transform: () => {
             throw Error('💩');
         }})).rejects.toThrow(Error('💩'));
     });
 
     test('Should rethrow transform failure async', async () => {
         const tmp = await tempDir();
-        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target, sourceStats, targetStats) => {
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { transform: () => {
             return Promise.reject(Error('💩'));
         }})).rejects.toThrow(Error('💩'));
     });

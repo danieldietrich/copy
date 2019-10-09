@@ -30,7 +30,7 @@
   "scripts": {
     "clean": "rm -fr dist",
     "build": "npm run clean && npm run lint  && tsc --project tsconfig.build.json",
-    "lint": "tslint --project tsconfig.json",
+    "lint": "eslint ./src --ext .js,.jsx,.ts,.tsx",
     "prepare": "npm test && npm run build",
     "test": "jest --coverage"
   },
@@ -48,13 +48,15 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^24.0.18",
-    "@types/node": "^12.7.5",
+    "@types/node": "^12.7.12",
+    "@typescript-eslint/eslint-plugin": "^2.3.3",
+    "@typescript-eslint/parser": "^2.3.3",
     "@types/rimraf": "^2.0.2",
-    "codecov": "^3.5.0",
+    "codecov": "^3.6.1",
+    "eslint": "^6.5.1",
     "jest": "^24.9.0",
     "rimraf": "^3.0.0",
     "ts-jest": "^24.1.0",
-    "tslint": "^5.20.0",
     "typescript": "^3.6.3"
   }
 }

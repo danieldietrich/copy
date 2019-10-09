@@ -50,7 +50,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         const sourceStats = await lstat(source);
         const targetStats = await lstat(target).catch(ENOENT); // undefined if not exists
 
-        if (!filter || await Promise.resolve(filter(source, target, sourceStats, targetStats))) {
+        if (!filter || await Promise.resolve(filter(source, target, sourceStats, targetStats))) {
             if (errorOnExist && targetStats && !overwrite) {
                 throw Error(`target already exists: ${target}`);
             }
@@ -59,8 +59,8 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
                 subTotals[1] += 1;
                 subTotals[3] += fileSize; // subTotals[3] += await cpFile(...) leads to race conditions!
             } else if (sourceStats.isDirectory()) {
-                await cpDir(source, target, sourceStats, targetStats, subTotals);
                 subTotals[0] += 1; // don't counting directory size produces the same result as macOS "Get info" on a folder
+                await cpDir(source, target, sourceStats, targetStats, subTotals);
             } else if (sourceStats.isSymbolicLink()) {
                 const symlinkSize = await cpSymlink(source, target, sourceStats, targetStats);
                 subTotals[2] += 1;
