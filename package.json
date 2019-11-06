@@ -47,16 +47,16 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^24.0.18",
-    "@types/node": "^12.7.12",
-    "@typescript-eslint/eslint-plugin": "^2.3.3",
-    "@typescript-eslint/parser": "^2.3.3",
-    "@types/rimraf": "^2.0.2",
+    "@types/jest": "^24.0.22",
+    "@types/node": "^12.12.6",
+    "@typescript-eslint/eslint-plugin": "^2.6.1",
+    "@typescript-eslint/parser": "^2.6.1",
+    "@types/rimraf": "^2.0.3",
     "codecov": "^3.6.1",
-    "eslint": "^6.5.1",
+    "eslint": "^6.6.0",
     "jest": "^24.9.0",
     "rimraf": "^3.0.0",
     "ts-jest": "^24.1.0",
-    "typescript": "^3.6.3"
+    "typescript": "^3.7.2"
   }
 }
