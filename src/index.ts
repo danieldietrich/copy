@@ -34,7 +34,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         dryRun: false,
     };
 
-    const { overwrite, errorOnExist, dereference, preserveTimestamps, chown, chgrp, dryRun, filter, transform } = Object.assign(defaultOptions, options);
+    const { overwrite, errorOnExist, dereference, preserveTimestamps, chown, chgrp, dryRun, filter, transform, rename } = Object.assign(defaultOptions, options);
     const flag = overwrite ? 'w' : 'wx'; // fs file system flags
     const [directories, files, symlinks, size] = await cpPath(sourcePath, targetPath, [0, 0, 0, 0]);
 
@@ -94,6 +94,13 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
     }
 
     async function cpFile(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined): Promise<number> {
+        if (rename) {
+            const renamed = await Promise.resolve(rename(source, target, sourceStats, targetStats));
+            if (renamed) {
+                target = renamed;
+                targetStats = await lstat(target).catch(ENOENT);
+            }
+        }
         if (transform) {
             const data = await Promise.resolve(transform(await readFile(source), source, target, sourceStats, targetStats));
             if (!dryRun && (!targetStats || overwrite)) {
@@ -112,6 +119,13 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
 
     async function cpSymlink(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined): Promise<number> {
         if (!targetStats || overwrite) {
+            if (rename) {
+                const renamed = await Promise.resolve(rename(source, target, sourceStats, targetStats));
+                if (renamed) {
+                    target = renamed;
+                    targetStats = await lstat(target).catch(ENOENT);
+                }
+            }
             const link = await readlink(source);
             if (!dryRun) {
                 if (targetStats) {
@@ -149,6 +163,7 @@ namespace copy {
         chgrp?: number;
         dryRun?: boolean;
         filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
+        rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string>;
         transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
     };
 
