@@ -20,8 +20,8 @@ const unlink = promisify(fs.unlink);
 const utimes = promisify(fs.utimes);
 const writeFile = promisify(fs.writeFile);
 
-afterEach(() => {
-    tempDir('rm')
+afterEach(async () => {
+    await tempDir('rm')
     jest.clearAllMocks();
 });
 
