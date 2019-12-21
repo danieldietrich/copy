@@ -4,7 +4,7 @@
 &nbsp;
 ![Platform](https://img.shields.io/badge/platform-Node%20v10%20%28ES8%2fES2017%29-decc47?logo=TypeScript&style=flat-square)
 &nbsp;
-[![Sponsor](https://img.shields.io/badge/GitHub-💖Sponsors-b5b7b9?logo=github&style=flat-square)](https://github.com/sponsors/danieldietrich)[![donate](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://paypal.me/danieldietrich13)[![license](https://img.shields.io/github/license/danieldietrich/slugify?style=flat-square)](https://opensource.org/licenses/MIT/)
+[![Sponsor](https://img.shields.io/badge/GitHub-💖Sponsors-b5b7b9?logo=github&style=flat-square)](https://github.com/sponsors/danieldietrich)[![donate](https://img.shields.io/badge/Donate-PayPal-blue.svg?style=flat-square)](https://paypal.me/danieldietrich13)[![license](https://img.shields.io/github/license/danieldietrich/copy?style=flat-square)](https://opensource.org/licenses/MIT/)
 &nbsp;
 [![Follow](https://img.shields.io/twitter/follow/danieldietrich?label=Follow&style=social)](https://twitter.com/danieldietrich/)
 
@@ -16,6 +16,7 @@ The copy tool recursively copies files, directories and links from a source dire
 
 Features:
 
+* Renaming and moving files and directories
 * Transformation of file contents
 * Filtering paths
 * Preserving user permissions
@@ -26,6 +27,14 @@ Features:
 * Collecting results (size & number of directories, files and links)
 * Performing a dry run without writing files
 * May be used as drop-in for [fs-extra/copy](https://github.com/jprichardson/node-fs-extra/blob/HEAD/docs/copy.md), see [Options](#options)
+
+The copy tool intentionally does not
+
+* provide a synchronous API
+* check for cycles, i.e. if the destination is a subdirectory of the source
+* provide a transform API based on streams and chunks
+* preserve the timestamp of links (because node does not provide an OS independent API for that purpose)
+* rewrite the relative link of symlinks if source and/or destination were renamed or moved
 
 ## Installation
 
@@ -63,14 +72,6 @@ _Totals_ contains information about the copy operation:
 ```
 
 The _number_ of directories, files and symlinks corresponds to the source. The _size_ reflects the number of written bytes. In particular, the size might be smaller than the source, if existing files are not ovewritten.
-
-The copy tool intentionally does not
-
-* provide a synchronous API
-* check for cycles, i.e. if the destination is a subdirectory of the source
-* provide an API to rename or move paths
-* provide a transform API based on streams and chunks
-* preserve the timestamp of links (because node does not provide an OS independent API for that purpose)
 
 ## API
 
