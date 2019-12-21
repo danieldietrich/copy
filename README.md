@@ -88,6 +88,7 @@ type Options = {
     chgrp?: number;
     dryRun?: boolean;
     filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
+    rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string | void>;
     transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
 };
 
@@ -113,6 +114,7 @@ Copy is a superset of fs-extra/copy. Option names and default values correspond 
 | <tt>chgrp</tt><sup>*)</sup> | A [gid](https://en.wikipedia.org/wiki/Group_identifier). Changes the group (preserved by default). |
 | <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. Default: <tt>false</tt> |
 | <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>rename</tt><sup>*)</sup> | Optional rename function, sync or async. A target path is renamed when returning a <tt>string</tt>, otherwise the original name is taken. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 | <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 
 *) fs-extra does not have this feature
