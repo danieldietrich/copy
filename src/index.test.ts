@@ -8,9 +8,10 @@ import { promisify } from 'util';
 // promisify all the things as long as fs.promises is stage-1 experimental
 const access = promisify(fs.access);
 const exists = (target: string) => access(target).then(() => true).catch(() => false); // fs.exists has been deprecated
+const lstat = promisify(fs.lstat);
 const mkdir = promisify(fs.mkdir);
 const rmdir = promisify(rimraf);
-const lstat = promisify(fs.lstat);
+const readlink = promisify(fs.readlink);
 const symlink = promisify(fs.symlink);
 const unlink = promisify(fs.unlink);
 const utimes = promisify(fs.utimes);
@@ -258,7 +259,6 @@ describe('Options.rename', () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
             if (target.endsWith('/l1')) {
-                console.log("source", source, "target", target);
                 return path.join(path.dirname(target), 'l1foo');
             }
             return;
@@ -309,6 +309,94 @@ describe('Options.rename', () => {
         await expect(exists(`${tmp}/src/d1/d3/f3`)).resolves.toBeTruthy();
         await expect(exists(`${tmp}/dst/d1/d3/f3`)).resolves.toBeTruthy();
         await expect(exists(`${tmp}/dst/d1/d3/f3foo`)).resolves.toBeFalsy();
+    });
+
+    test('Should rename directory sync', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d1')) {
+                return path.join(path.dirname(target), 'd1foo');
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/src/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/d1`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/d1foo`)).resolves.toBeTruthy();
+    });
+
+    test('Should rename directory async', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d1')) {
+                return Promise.resolve(path.join(path.dirname(target), 'd1foo'));
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/src/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/d1`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/d1foo`)).resolves.toBeTruthy();
+    });
+
+    test('Should move directory when renaming sync', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d1')) {
+                return `${tmp}/dst/foo/d1`;
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/src/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/d1`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/foo/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/foo/d1/d3`)).resolves.toBeTruthy();
+    });
+
+    test('Should move directory when renaming async', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d1')) {
+                return Promise.resolve(`${tmp}/dst/foo/d1`);
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/src/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/d1`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/foo/d1`)).resolves.toBeTruthy();
+        await expect(exists(`${tmp}/dst/foo/d1/d3`)).resolves.toBeTruthy();
+    });
+
+    test('Should break symlink when renaming linked directory sync', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d3')) {
+                return path.join(path.dirname(target), 'd3foo');
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        expect((await lstat(`${tmp}/src/d1/l2`)).isSymbolicLink()).toBeTruthy();
+        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/l1');
+        await expect(exists(`${tmp}/dst/d3`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/d3foo`)).resolves.toBeTruthy();
+    });
+
+    test('Should break symlink when renaming linked directory async', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/d3')) {
+                return Promise.resolve(path.join(path.dirname(target), 'd3foo'));
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        expect((await lstat(`${tmp}/src/d1/l2`)).isSymbolicLink()).toBeTruthy();
+        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/l1');
+        await expect(exists(`${tmp}/dst/d3`)).resolves.toBeFalsy();
+        await expect(exists(`${tmp}/dst/d3foo`)).resolves.toBeTruthy();
     });
 
 });
