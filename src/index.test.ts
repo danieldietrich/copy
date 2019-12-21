@@ -1,7 +1,13 @@
-import * as copy from '.';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as rimraf from 'rimraf';
 import { promisify } from 'util';
+const spy = {
+    writeFile: jest.spyOn(fs, 'writeFile'),
+    copyFile: jest.spyOn(fs, 'copyFile'),
+    symlink: jest.spyOn(fs, 'symlink')
+};
+import * as copy from '.';
 
 // promisify all the things as long as fs.promises is stage-1 experimental
 const access = promisify(fs.access);
@@ -14,7 +20,10 @@ const unlink = promisify(fs.unlink);
 const utimes = promisify(fs.utimes);
 const writeFile = promisify(fs.writeFile);
 
-afterEach(() => tempDir('rm'));
+afterEach(async () => {
+    await tempDir('rm')
+    jest.clearAllMocks();
+});
 
 describe('Basic behavior', () => {
 
@@ -259,6 +268,93 @@ describe('Options.transform', () => {
         }})).rejects.toThrow(Error('💩'));
     });
 
+});
+
+describe('Options.rename', () => {
+
+    test('Should rename file sync', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/f3')) {
+                return path.join(path.dirname(target), 'f3foo');
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        const [ source, target ] = spy.copyFile.mock.calls[2];
+        expect(source).toEqual('__tmp/src/d1/d3/f3');
+        expect(target).toEqual('__tmp/dst/d1/d3/f3foo');
+    });
+
+    test('Should rename file async', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/f3')) {
+                return Promise.resolve(path.join(path.dirname(target), 'f3foo'));
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        const [ source, target ] = spy.copyFile.mock.calls[2];
+        expect(source).toEqual(`${tmp}/src/d1/d3/f3`);
+        expect(target).toEqual(`${tmp}/dst/d1/d3/f3foo`);
+    });
+
+    test('Should rename symlink sync', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/l1')) {
+                return path.join(path.dirname(target), 'l1foo');
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        const [ source, target ] = spy.symlink.mock.calls[5];
+        expect(source).toEqual('../l1');
+        expect(target).toEqual(`${tmp}/dst/d1/d3/l1foo`);
+    });
+
+    test('Should rename symlink async', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/l1')) {
+                return Promise.resolve(path.join(path.dirname(target), 'l1foo'));
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        const [ source, target ] = spy.symlink.mock.calls[5];
+        expect(source).toEqual('../l1');
+        expect(target).toEqual(`${tmp}/dst/d1/d3/l1foo`);
+    });
+
+    test('Should rethrow rename failure sync', async () => {
+        const tmp = await tempDir();
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { rename: () => {
+            throw Error('💩');
+        }})).rejects.toThrow(Error('💩'));
+    });
+
+    test('Should rethrow rename failure async', async () => {
+        const tmp = await tempDir();
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { rename: () => {
+            return Promise.reject(Error('💩'));
+        }})).rejects.toThrow(Error('💩'));
+    });
+
+    test('Should not rename file if falsey', async () => {
+        const tmp = await tempDir();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
+            if (target.endsWith('/f3')) {
+                return '';
+            }
+            return;
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        const [ source, target ] = spy.copyFile.mock.calls[2];
+        expect(source).toEqual('__tmp/src/d1/d3/f3');
+        expect(target).toEqual('__tmp/dst/d1/d3/f3');
+    });
 });
 
 // -- temp dir creation and cleanup
