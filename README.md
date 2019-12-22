@@ -84,7 +84,7 @@ const path = require('path');
     const filter = (source, target, sourceStats, targetStats) =>
         sourceStats.isDirectory() || sourceStats.isFile() && source.endsWith('.js');
 
-    // move dist/ directories to ../ and rename index.js files to index.mjs
+    // move dist/ dir contents to parent dir and rename index.js files to index.mjs
     const rename = (source, target, sourceStats, targetStats) => {
         if (sourceStats.isDirectory() && source.endsWith('/dist')) {
             return path.dirname(target);
