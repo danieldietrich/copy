@@ -416,7 +416,7 @@ describe('Options.transform', () => {
 
     test('Should transform file sync', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
             if (target.endsWith('/f3')) {
                 return Buffer.from("3️⃣", 'utf8');
             } else {
@@ -428,7 +428,7 @@ describe('Options.transform', () => {
 
     test('Should transform file async', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
             if (target.endsWith('/f3')) {
                 return Promise.resolve(Buffer.from("3️⃣", 'utf8'));
             } else {
@@ -442,7 +442,7 @@ describe('Options.transform', () => {
         const tmp = await tempDir();
         await copy(`${tmp}/src`, `${tmp}/dst`);
         // intentionally copying again, overwrite is true by default
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
             if (target.endsWith('/f3')) {
                 return Buffer.from("3️⃣", 'utf8');
             } else {
