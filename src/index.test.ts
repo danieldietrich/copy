@@ -28,21 +28,22 @@ describe('Basic behavior', () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src/d3`, `${tmp}/src/d3`);
         expect(totals).toEqual({ directories: 1, files: 0, symlinks: 0, size: 0 });
+        await expect(exists(`${tmp}/src/d3`)).resolves.toBeTruthy();
     });
 
     test('Should copy non-empty source to target', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`);
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/dst/d1`)).resolves.toBeTruthy();
     });
 
-    /* TODO: fs.mkdir(path, { recursive: true }) should work with node 10.15.1+ but it doesn't
     test('Should recursively create non-existing target directory', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst/sub/sub/sub`);
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        await expect(exists(`${tmp}/dst/sub/sub/sub/d1`)).resolves.toBeTruthy();
     });
-    */
 
 });
 
@@ -89,11 +90,10 @@ describe('Options.dereference', () => {
     test('Should fail when trying to dereference broken links', async () => {
         const tmp = await tempDir();
         await unlink(`${tmp}/src/d1/l2`);
-        // ENOENT: no such file or directory, copyfile '__tmp/src/d1/d3/l3' -> '__tmp/dst/d1/d3/l3'
-        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { dereference: true })).rejects.toThrow();
+        await expect(copy(`${tmp}/src`, `${tmp}/dst`, { dereference: true })).rejects.toThrow(Error("ENOENT: no such file or directory, copyfile '__tmp/src/d1/d3/l1' -> '__tmp/dst/d1/d3/l1'"));
     });
 
-    test('Should fail when trying to dereference cylclic links', async () => {
+    test('Should copy broken link when overwriting it with a proper file', async () => {
         const tmp = await tempDir();
         await writeFile(`${tmp}/src/d1/l1`, "fixed", { encoding: 'utf8' });
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { dereference: true });
@@ -109,7 +109,7 @@ describe('Options.preserveMode', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`);
         const fileModeSrc = (await lstat(`${tmp}/src/d1/f1`)).mode;
         const fileModeDst = (await lstat(`${tmp}/dst/d1/f1`)).mode;
-        expect(fileModeSrc).toBe(fileModeDst);
+        expect(fileModeSrc).toEqual(fileModeDst);
     });
 
     test('Should preserve dir mode when not transforming', async () => {
@@ -117,7 +117,7 @@ describe('Options.preserveMode', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`);
         const dirModeSrc = (await lstat(`${tmp}/src/d3`)).mode;
         const dirModeDst = (await lstat(`${tmp}/dst/d3`)).mode;
-        expect(dirModeSrc).toBe(dirModeDst);
+        expect(dirModeSrc).toEqual(dirModeDst);
     });
 
     test('Should preserve file mode when transforming', async () => {
@@ -125,7 +125,7 @@ describe('Options.preserveMode', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`, { transform: data => data });
         const fileModeSrc = (await lstat(`${tmp}/src/d1/f1`)).mode;
         const fileModeDst = (await lstat(`${tmp}/dst/d1/f1`)).mode;
-        expect(fileModeSrc).toBe(fileModeDst);
+        expect(fileModeSrc).toEqual(fileModeDst);
     });
 
     test('Should preserve dir mode when transforming', async () => {
@@ -133,7 +133,7 @@ describe('Options.preserveMode', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`, { transform: data => data });
         const dirModeSrc = (await lstat(`${tmp}/src/d3`)).mode;
         const dirModeDst = (await lstat(`${tmp}/dst/d3`)).mode;
-        expect(dirModeSrc).toBe(dirModeDst);
+        expect(dirModeSrc).toEqual(dirModeDst);
     });
 
 });
@@ -145,7 +145,18 @@ describe('Options.preserveTimestamps', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`, { preserveTimestamps: true });
         const srcFileStats = await lstat(`${tmp}/src/d1/f1`);
         const dstFileStats = await lstat(`${tmp}/dst/d1/f1`);
-        // atime was changed when stat accessed the file
+        // atime was changed when lstat accessed the file
+        expect(dstFileStats.mtime).toEqual(srcFileStats.mtime);
+    });
+
+    test('Should preserve file timestamps when files exist and { overwrite: true, preserveTimestamps: true }', async () => {
+        const tmp = await tempDir();
+        await copy(`${tmp}/src`, `${tmp}/dst`);
+        // intentionally copying again, overwrite is true by default
+        await copy(`${tmp}/src`, `${tmp}/dst`, { preserveTimestamps: true });
+        const srcFileStats = await lstat(`${tmp}/src/d1/f1`);
+        const dstFileStats = await lstat(`${tmp}/dst/d1/f1`);
+        // atime was changed when lstat accessed the file
         expect(dstFileStats.mtime).toEqual(srcFileStats.mtime);
     });
 
@@ -154,7 +165,7 @@ describe('Options.preserveTimestamps', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`, { preserveTimestamps: true });
         const srcDirStats = await lstat(`${tmp}/src/d3`);
         const dstDirStats = await lstat(`${tmp}/dst/d3`);
-        // atime was changed when stat accessed the dir
+        // atime was changed when lstat accessed the dir
         expect(dstDirStats.mtime).toEqual(srcDirStats.mtime);
     });
 
@@ -422,6 +433,20 @@ describe('Options.transform', () => {
                 return Promise.resolve(Buffer.from("3️⃣", 'utf8'));
             } else {
                 return Promise.resolve(data);
+            }
+        }});
+        expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 28 });
+    });
+
+    test('Should overwrite file when exists and transforming sync', async () => {
+        const tmp = await tempDir();
+        await copy(`${tmp}/src`, `${tmp}/dst`);
+        // intentionally copying again, overwrite is true by default
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data: Buffer, source, target) => {
+            if (target.endsWith('/f3')) {
+                return Buffer.from("3️⃣", 'utf8');
+            } else {
+                return data;
             }
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 28 });
