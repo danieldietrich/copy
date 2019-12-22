@@ -390,7 +390,7 @@ describe('Options.rename', () => {
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
         expect((await lstat(`${tmp}/src/d1/l2`)).isSymbolicLink()).toBeTruthy();
-        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/l1');
+        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/f3');
         await expect(exists(`${tmp}/dst/d3`)).resolves.toBeFalsy();
         await expect(exists(`${tmp}/dst/d3foo`)).resolves.toBeTruthy();
     });
@@ -405,7 +405,7 @@ describe('Options.rename', () => {
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
         expect((await lstat(`${tmp}/src/d1/l2`)).isSymbolicLink()).toBeTruthy();
-        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/l1');
+        expect(await readlink(`${tmp}/dst/d1/l2`)).toEqual('d3/f3');
         await expect(exists(`${tmp}/dst/d3`)).resolves.toBeFalsy();
         await expect(exists(`${tmp}/dst/d3foo`)).resolves.toBeTruthy();
     });
@@ -476,10 +476,10 @@ __tmp/
     ├── d1
     │   ├── d3
     │   │   ├── f3
-    │   │   ├── l1 -> ../l1
+    │   │   ├── l1 -> ../l1  // <--- it is important to have EXACTLY ONE broken link in our example because of race conditions!
     │   │   └── l3 -> ../l2
     │   ├── f1
-    │   └── l2 -> d3/l1
+    │   └── l2 -> d3/f3
     ├── d2
     │   └── f2
     └── d3
@@ -501,7 +501,7 @@ async function tempDir(mode: 'mk' | 'rm' = 'mk'): Promise<string> {
         await writeFile(`${tmp}/src/d2/f2`, "two", { encoding: 'utf8' });
         await symlink('../l1', `${tmp}/src/d1/d3/l1`);
         await symlink('../l2', `${tmp}/src/d1/d3/l3`);
-        await symlink('d3/l1', `${tmp}/src/d1/l2`);
+        await symlink('d3/f3', `${tmp}/src/d1/l2`);
         await utimes(`${tmp}/src/d1/f1`, 0, 0);
         await utimes(`${tmp}/src/d3`, 0, 0);
     }
