@@ -49,15 +49,14 @@ The module supports ES6 _import_ and CommonJS _require_ style.
 ```ts
 import copy from '@danieldietrich/copy';
 
-example();
+(async function() {
 
-setTimeout(() => console.log('Done.'), 3210);
-
-// Performs a dry run of copying ./node_modules to ./temp
-async function example() {
+    // Performs a dry run of copying ./node_modules to ./temp
     const totals = await copy('node_modules', 'temp', { dryRun: true });
+
     console.log('Totals:', totals);
-}
+
+})();
 ```
 
 _Totals_ contains information about the copy operation:
@@ -72,6 +71,49 @@ _Totals_ contains information about the copy operation:
 ```
 
 The _number_ of directories, files and symlinks corresponds to the source. The _size_ reflects the number of written bytes. In particular, the size might be smaller than the source, if existing files are not ovewritten.
+
+A few more examples:
+
+```ts
+const copy = require('@danieldietrich/copy');
+const path = require('path');
+
+(async function() {
+
+    // recursively copy all .js files
+    const filter = (source, target, sourceStats, targetStats) =>
+        sourceStats.isDirectory() || sourceStats.isFile() && source.endsWith('.js');
+
+    // move dist/ directories to ../ and rename index.js files to index.mjs
+    const rename = (source, target, sourceStats, targetStats) => {
+        if (sourceStats.isDirectory() && source.endsWith('/dist')) {
+            return path.dirname(target);
+        } else if (sourceStats.isFile() && source.endsWith('/index.js')) {
+            return path.join(path.dirname(target), 'index.mjs');
+        } else {
+            return;
+        }
+    };
+
+    // transform the contents of all index.mjs files to upper case
+    const transform = (data, source, target, sourceStats, targetStats) => {
+        if (sourceStats.isFile() && target.endsWith('/index.mjs')) {
+            return Buffer.from(data.toString('utf8').toUpperCase(), 'utf8');
+        } else {
+            return data;
+        }
+    };
+
+    const totals = await copy('node_modules', 'temp', {
+        filter,
+        rename,
+        transform
+    });
+
+    console.log('Totals:', totals);
+
+})();
+```
 
 ## API
 
