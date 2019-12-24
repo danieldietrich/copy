@@ -13,7 +13,6 @@ const mkdir = promisify(fs.mkdir);
 const rmdir = promisify(rimraf);
 const readlink = promisify(fs.readlink);
 const symlink = promisify(fs.symlink);
-const unlink = promisify(fs.unlink);
 const utimes = promisify(fs.utimes);
 const writeFile = promisify(fs.writeFile);
 
@@ -89,7 +88,6 @@ describe('Options.dereference', () => {
 
     test('Should fail when trying to dereference broken links', async () => {
         const tmp = await tempDir();
-        await unlink(`${tmp}/src/d1/l2`);
         await expect(copy(`${tmp}/src`, `${tmp}/dst`, { dereference: true })).rejects.toThrow(Error("ENOENT: no such file or directory, copyfile '__tmp/src/d1/d3/l1' -> '__tmp/dst/d1/d3/l1'"));
     });
 
