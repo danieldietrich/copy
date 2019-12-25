@@ -46,8 +46,8 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
     };
 
     async function cpPath(src: string, dst: string, subTotals: SubTotals): Promise<SubTotals> {
-        const source: copy.FileInfo = { path: src, stats: await lstat(src) };
-        const target: copy.FileInfoOption = { path: dst, stats: await lstat(dst).catch(ENOENT) };
+        const source: copy.Source = { path: src, stats: await lstat(src) };
+        const target: copy.Target = { path: dst, stats: await lstat(dst).catch(ENOENT) };
         if (rename) {
             target.path = await Promise.resolve(rename(source, target, derivedOptions)) || target.path;
             target.stats = await lstat(target.path).catch(ENOENT) || target.stats;
@@ -87,7 +87,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         return subTotals;
     }
 
-    async function cpDir(source: copy.FileInfo, target: copy.FileInfoOption, subTotals: SubTotals) {
+    async function cpDir(source: copy.Source, target: copy.Target, subTotals: SubTotals) {
         if (!dryRun && !target.stats) {
             await mkdir(target.path, { recursive: true, mode: source.stats.mode });
         }
@@ -98,7 +98,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         );
     }
 
-    async function cpFile(source: copy.FileInfo, target: copy.FileInfoOption): Promise<number> {
+    async function cpFile(source: copy.Source, target: copy.Target): Promise<number> {
         if (transform) {
             const data = await Promise.resolve(transform(await readFile(source.path), source, target, derivedOptions));
             if (!dryRun && (!target.stats || overwrite)) {
@@ -115,7 +115,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         }
     }
 
-    async function cpSymlink(source: copy.FileInfo, target: copy.FileInfoOption): Promise<number> {
+    async function cpSymlink(source: copy.Source, target: copy.Target): Promise<number> {
         if (!target.stats || overwrite) {
             const link = await readlink(source.path);
             if (!dryRun) {
@@ -151,18 +151,18 @@ namespace copy {
         dereference?: boolean;
         preserveTimestamps?: boolean;
         dryRun?: boolean;
-        rename?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => string | void | Promise<string | void>;
-        filter?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => boolean | Promise<boolean>;
-        transform?: (data: Buffer, source: FileInfo, target: FileInfoOption, options: copy.Options) => Buffer | Promise<Buffer>;
-        afterEach?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => void | Promise<void>;
+        rename?: (source: Source, target: Target, options: Options) => string | void | Promise<string | void>;
+        filter?: (source: Source, target: Target, options: Options) => boolean | Promise<boolean>;
+        transform?: (data: Buffer, source: Source, target: Target, options: Options) => Buffer | Promise<Buffer>;
+        afterEach?: (source: Source, target: Target, options: Options) => void | Promise<void>;
     };
 
-    export type FileInfo = {
+    export type Source = {
         path: string;
         stats: fs.Stats;
     };
 
-    export type FileInfoOption = {
+    export type Target = {
         path: string;
         stats?: fs.Stats;
     };
