@@ -137,10 +137,10 @@ const path = require('path');
 In the following example we change the file owner uid. A chgrp or chmod may be performed in a similar way.
 
 ```ts
-import { promisify } from 'util';
+import * as copy from '@danieldietrich/copy';
+import * as fs from 'fs';
 
-// or simply fs.promises.lchown
-const lchown = promisify(fs.promises.lchown);
+const { lchown } = fs.promises;
 
 async function changeOwner(src: string, dst: string, uid: number) {
     copy(src, dst, {
@@ -154,6 +154,8 @@ async function changeOwner(src: string, dst: string, uid: number) {
 ### Implementing a progress indicator
 
 ```ts
+import * as copy from '@danieldietrich/copy';
+
 async function copyWithProgress(src: string, dst: string, callback: (curr: copy.Totals, sum: copy.Totals) => void) {
     const curr: copy.Totals = {
         directories: 0,
@@ -162,7 +164,9 @@ async function copyWithProgress(src: string, dst: string, callback: (curr: copy.
         size: 0
     };
     const sum = await copy(src, dst, { dryRun: true });
-    copy(src, dst, { afterEach: (source) => {
+    const interval = 100; // ms
+    let update = Date.now();
+    await copy(src, dst, { afterEach: (source) => {
         if (source.stats.isDirectory()) {
             curr.directories += 1;
         } else if (source.stats.isFile()) {
@@ -172,9 +176,20 @@ async function copyWithProgress(src: string, dst: string, callback: (curr: copy.
             curr.symlinks += 1;
             curr.size += source.stats.size;
         }
-        callback(curr, sum);
+        if (Date.now() - update >= interval) {
+            update = Date.now();
+            callback(curr, sum);
+        }
     }});
+    callback(sum, sum);
 }
+
+// usage
+(async function() {
+    copyWithProgress('node_modules', 'temp', (curr, sum) => {
+        console.log(`${Math.floor(curr.size / sum.size * 100)} %`);
+    });
+})();
 ```
 
 ## API
