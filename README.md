@@ -24,7 +24,6 @@ Features:
 * Overwriting or keeping existing files
 * Creating or dereferencing links
 * Preserving original timestamps
-* Changing owner and group (**deprecated**, use _afterEach_ instead)
 * Collecting results (size & number of directories, files and links)
 * Performing a dry run without writing files
 * May be used as drop-in for [fs-extra/copy](https://github.com/jprichardson/node-fs-extra/blob/HEAD/docs/copy.md), see [Options](#options)
@@ -81,34 +80,44 @@ const path = require('path');
 
 (async function() {
 
-    // recursively copy all .js files
-    const filter = (source, target, sourceStats, targetStats) =>
-        sourceStats.isDirectory() || sourceStats.isFile() && source.endsWith('.js');
-
     // move dist/ dir contents to parent dir and rename index.js files to index.mjs
-    const rename = (source, target, sourceStats, targetStats) => {
-        if (sourceStats.isDirectory() && source.endsWith('/dist')) {
-            return path.dirname(target);
-        } else if (sourceStats.isFile() && source.endsWith('/index.js')) {
-            return path.join(path.dirname(target), 'index.mjs');
+    const rename = (source, target) => {
+        if (source.stats.isDirectory() && source.path.endsWith('/dist')) {
+            return path.dirname(target.path);
+        } else if (source.stats.isFile() && source.path.endsWith('/index.js')) {
+            return path.join(path.dirname(target.path), 'index.mjs');
         } else {
             return;
         }
     };
 
+    // recursively copy all .js files
+    const filter = (source, target) =>
+        source.stats.isDirectory() || source.stats.isFile() && source.path.endsWith('.js');
+
     // transform the contents of all index.mjs files to upper case
-    const transform = (data, source, target, sourceStats, targetStats) => {
-        if (sourceStats.isFile() && target.endsWith('/index.mjs')) {
+    const transform = (data, source, target) => {
+        if (source.stats.isFile() && target.path.endsWith('/index.mjs')) {
             return Buffer.from(data.toString('utf8').toUpperCase(), 'utf8');
         } else {
             return data;
         }
     };
 
+    // transform the contents of all index.mjs files to upper case
+    const afterEach = (source, target) => {
+        if (target.stats.isDirectory()) {
+            console.log(`Created ${target.path}`);
+        } else {
+            console.log(`Copied ${source.path} to ${target.path} (${target.stats.size()} bytes)`);
+        }
+    };
+
     const totals = await copy('node_modules', 'temp', {
-        filter,
         rename,
-        transform
+        filter,
+        transform,
+        afterEach
     });
 
     console.log('Totals:', totals);
@@ -121,27 +130,40 @@ const path = require('path');
 The general signature of _copy_ is:
 
 ```ts
-async function copy(source: string, target: string, options?: Options): Promise<Totals>;
+async function copy(sourcePath: string, targetPath: string, options?: copy.Options): Promise<copy.Totals>;
+```
 
+The public types are:
+
+```ts
+// compatible to fs-extra.copy
 type Options = {
     overwrite?: boolean;
     errorOnExist?: boolean;
     dereference?: boolean;
     preserveTimestamps?: boolean;
-    chown?: number; // DEPRECATED
-    chgrp?: number; // DEPRECATED
     dryRun?: boolean;
-    filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
-    rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string | void>;
-    transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
-    afterEach?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats) => void | Promise<void>;
+    rename?: (source: Path, target: PathOption) => string | void | Promise<string | void>;
+    filter?: (source: Path, target: PathOption) => boolean | Promise<boolean>;
+    transform?: (data: Buffer, source: Path, target: PathOption) => Buffer | Promise<Buffer>;
+    afterEach?: (source: Path, target: Path) => void | Promise<void>;
+};
+
+type Path = {
+    path: string;
+    stats: fs.Stats;
+};
+
+type PathOption = {
+    path: string;
+    stats?: fs.Stats;
 };
 
 type Totals = {
     directories: number;
     files: number;
     symlinks: number;
-    size: number;
+    size: number; // not size on disk in blocks
 };
 ```
 
@@ -155,20 +177,18 @@ Copy is a superset of fs-extra/copy. Option names and default values correspond 
 | <tt>errorOnExist</tt> | Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> |
 | <tt>dereference</tt> | Copies files if <tt>true</tt>. Default: <tt>false</tt> |
 | <tt>preserveTimestamps</tt> | Preserves the original timestamps. Default: <tt>false</tt> |
-| <tt>chown</tt><sup>*)</sup> <strong>deprecated</strong> | A [uid](https://en.wikipedia.org/wiki/User_identifier). Changes the owner (preserved by default). |
-| <tt>chgrp</tt><sup>*)</sup> <strong>deprecated</strong> | A [gid](https://en.wikipedia.org/wiki/Group_identifier). Changes the group (preserved by default). |
 | <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. <tt>afterEach</tt> is not called. Default: <tt>false</tt> |
-| <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
-| <tt>rename</tt><sup>*)</sup> | Optional rename function, sync or async. A target path is renamed when returning a non-empty <tt>string</tt>, otherwise the original name is taken. When moving a directory to a different location, internally a recursive mkdir might be used. In such a case at least node [v10.12](https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V10.md#2018-10-10-version-10120-current-targos) is required. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
-| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
-| <tt>afterEach</tt><sup>*)</sup> | Optional action that is performed after a path has been copied, sync or async. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>rename</tt><sup>*)</sup> | Optional rename function, sync or async. A target path is renamed when returning a non-empty <tt>string</tt>, otherwise the original name is taken. When moving a directory to a different location, internally a recursive mkdir might be used. In such a case at least node [v10.12](https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V10.md#2018-10-10-version-10120-current-targos) is required. |
+| <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. |
+| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. |
+| <tt>afterEach</tt><sup>*)</sup> | Optional action that is performed after a path has been copied, sync or async. |
 
 *) fs-extra does not have this feature
 
 ### Option precedence
 
-1. First, the target path is updated by calling the _rename_ function, if present. Please note that the current target path passed to the function.
-2. Then the optional _filter_ function is applied.
+1. First, the target path is updated by calling the _rename_ function, if present. Please note that the current target path is passed to the function.
+2. Then the optional _filter_ function is applied. Because we do this after the target has been renamed, we are able to take the contents of an existing target into account.
 3. Next, the optional _transform_ function is called.
 4. After the target has been written, the optional _afterEach_ function is called.
 
