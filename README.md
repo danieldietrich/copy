@@ -195,18 +195,18 @@ type Options = {
     dereference?: boolean;
     preserveTimestamps?: boolean;
     dryRun?: boolean;
-    rename?: (source: FileInfo, target: FileInfoOption, options: Options) => string | void | Promise<string | void>;
-    filter?: (source: FileInfo, target: FileInfoOption, options: Options) => boolean | Promise<boolean>;
-    transform?: (data: Buffer, source: FileInfo, target: FileInfoOption, options: Options) => Buffer | Promise<Buffer>;
-    afterEach?: (source: FileInfo, target: FileInfoOption, options: Options) => void | Promise<void>;
+    rename?: (source: Source, target: Target, options: Options) => string | void | Promise<string | void>;
+    filter?: (source: Source, target: Target, options: Options) => boolean | Promise<boolean>;
+    transform?: (data: Buffer, source: Source, target: Target, options: Options) => Buffer | Promise<Buffer>;
+    afterEach?: (source: Source, target: Target, options: Options) => void | Promise<void>;
 };
 
-type FileInfo = {
+type Source = {
     path: string;
     stats: fs.Stats;
 };
 
-type FileInfoOption = {
+type Target = {
     path: string;
     stats?: fs.Stats;
 };
