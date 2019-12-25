@@ -105,11 +105,14 @@ const path = require('path');
     };
 
     // log some information about copied files
-    const afterEach = (source, target) => {
-        if (target.stats.isDirectory()) {
-            console.log(`Created ${target.path}`);
+    const afterEach = (source, target, options) => {
+        const dryRun = options.dryRun ? '[DRY RUN] ' : '';
+        if (source.stats.isDirectory()) {
+            console.log(`${dryRun}Created ${target.path}`);
         } else {
-            console.log(`Copied ${source.path} to ${target.path} (${target.stats.size()} bytes)`);
+            // target.stats is undefined on a dry run if the target does not already exist!
+            const size = target.stats?.size || '?';
+            console.log(`${dryRun}Copied ${source.path} to ${target.path} (${size} bytes)`);
         }
     };
 
@@ -143,18 +146,18 @@ type Options = {
     dereference?: boolean;
     preserveTimestamps?: boolean;
     dryRun?: boolean;
-    rename?: (source: Path, target: PathOption) => string | void | Promise<string | void>;
-    filter?: (source: Path, target: PathOption) => boolean | Promise<boolean>;
-    transform?: (data: Buffer, source: Path, target: PathOption) => Buffer | Promise<Buffer>;
-    afterEach?: (source: Path, target: Path) => void | Promise<void>;
+    rename?: (source: FileInfo, target: FileInfoOption, options: Options) => string | void | Promise<string | void>;
+    filter?: (source: FileInfo, target: FileInfoOption, options: Options) => boolean | Promise<boolean>;
+    transform?: (data: Buffer, source: FileInfo, target: FileInfoOption, options: Options) => Buffer | Promise<Buffer>;
+    afterEach?: (source: FileInfo, target: FileInfoOption, options: Options) => void | Promise<void>;
 };
 
-type Path = {
+type FileInfo = {
     path: string;
     stats: fs.Stats;
 };
 
-type PathOption = {
+type FileInfoOption = {
     path: string;
     stats?: fs.Stats;
 };
@@ -177,11 +180,11 @@ Copy is a superset of fs-extra/copy. Option names and default values correspond 
 | <tt>errorOnExist</tt> | Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> |
 | <tt>dereference</tt> | Copies files if <tt>true</tt>. Default: <tt>false</tt> |
 | <tt>preserveTimestamps</tt> | Preserves the original timestamps. Default: <tt>false</tt> |
-| <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. <tt>afterEach</tt> is not called. Default: <tt>false</tt> |
-| <tt>rename</tt><sup>*)</sup> | Optional rename function, sync or async. A target path is renamed when returning a non-empty <tt>string</tt>, otherwise the original name is taken. When moving a directory to a different location, internally a recursive mkdir might be used. In such a case at least node [v10.12](https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V10.md#2018-10-10-version-10120-current-targos) is required. |
-| <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. |
-| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. |
-| <tt>afterEach</tt><sup>*)</sup> | Optional action that is performed after a path has been copied, sync or async. |
+| <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. <tt>afterEach</tt> is called and needs to check <tt>options.dryRun</tt>. Default: <tt>false</tt> |
+| <tt>rename</tt><sup>*)</sup> | Optional rename function. A target path is renamed when returning a non-empty <tt>string</tt>, otherwise the original name is taken. When moving a directory to a different location, internally a recursive mkdir might be used. In such a case at least node [v10.12](https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V10.md#2018-10-10-version-10120-current-targos) is required. |
+| <tt>filter</tt> | Optional path filter. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. |
+| <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents. |
+| <tt>afterEach</tt><sup>*)</sup> | Optional action that is performed after a path has been copied, even on a dry-run. Please check <tt>options.dryRun</tt> and/or if <tt>target.stats</tt> is defined. |
 
 *) fs-extra does not have this feature
 
