@@ -187,7 +187,8 @@ async function copyWithProgress(src: string, dst: string, callback: (curr: copy.
 // usage
 (async function() {
     copyWithProgress('node_modules', 'temp', (curr, sum) => {
-        console.log(`${Math.floor(curr.size / sum.size * 100)} %`);
+        const progress = Math.min(100, Math.floor(curr.size / sum.size * 100));
+        console.log(`${Number.parseFloat(progress).toFixed(1)} %`);
     });
 })();
 ```
