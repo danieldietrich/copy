@@ -33,7 +33,8 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         dryRun: false,
     };
 
-    const { overwrite, errorOnExist, dereference, preserveTimestamps, dryRun, rename, filter, transform, afterEach } = Object.assign(defaultOptions, options);
+    const derivedOptions = Object.assign(defaultOptions, options);
+    const { overwrite, errorOnExist, dereference, preserveTimestamps, dryRun, rename, filter, transform, afterEach } = derivedOptions;
     const flag = overwrite ? 'w' : 'wx'; // fs file system flags
     const [directories, files, symlinks, size] = await cpPath(sourcePath, targetPath, [0, 0, 0, 0]);
 
@@ -45,13 +46,13 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
     };
 
     async function cpPath(src: string, dst: string, subTotals: SubTotals): Promise<SubTotals> {
-        const source: copy.Path = { path: src, stats: await lstat(src) };
-        const target: copy.PathOption = { path: dst, stats: await lstat(dst).catch(ENOENT) };
+        const source: copy.FileInfo = { path: src, stats: await lstat(src) };
+        const target: copy.FileInfoOption = { path: dst, stats: await lstat(dst).catch(ENOENT) };
         if (rename) {
-            target.path = await Promise.resolve(rename(source, target)) || target.path;
+            target.path = await Promise.resolve(rename(source, target, derivedOptions)) || target.path;
             target.stats = await lstat(target.path).catch(ENOENT) || target.stats;
         }
-        if (!filter || await Promise.resolve(filter(source, target))) {
+        if (!filter || await Promise.resolve(filter(source, target, derivedOptions))) {
             if (errorOnExist && target.stats && !overwrite) {
                 throw Error(`target already exists: ${target}`);
             }
@@ -76,28 +77,30 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
                 }
                 if (afterEach) {
                     target.stats = target.stats || await lstat(target.path).catch(ENOENT);
-                    await Promise.resolve(afterEach(source, target as copy.Path)); // target.stats exist after copy
                 }
+            }
+            if (afterEach) {
+                await Promise.resolve(afterEach(source, target, derivedOptions));
             }
         }
 
         return subTotals;
     }
 
-    async function cpDir(source: copy.Path, target: copy.PathOption, subTotals: SubTotals) {
+    async function cpDir(source: copy.FileInfo, target: copy.FileInfoOption, subTotals: SubTotals) {
         if (!dryRun && !target.stats) {
             await mkdir(target.path, { recursive: true, mode: source.stats.mode });
         }
-        await Promise.all( // much faster than for-of loop
+        await Promise.all( // much faster than a for-of loop
             (await readdir(source.path)).map(async child =>
                 cpPath(path.join(source.path, child), path.join(target.path, child), subTotals),
             ),
         );
     }
 
-    async function cpFile(source: copy.Path, target: copy.PathOption): Promise<number> {
+    async function cpFile(source: copy.FileInfo, target: copy.FileInfoOption): Promise<number> {
         if (transform) {
-            const data = await Promise.resolve(transform(await readFile(source.path), source, target));
+            const data = await Promise.resolve(transform(await readFile(source.path), source, target, derivedOptions));
             if (!dryRun && (!target.stats || overwrite)) {
                 await writeFile(target.path, data, { mode: source.stats.mode, flag });
             }
@@ -112,7 +115,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         }
     }
 
-    async function cpSymlink(source: copy.Path, target: copy.PathOption): Promise<number> {
+    async function cpSymlink(source: copy.FileInfo, target: copy.FileInfoOption): Promise<number> {
         if (!target.stats || overwrite) {
             const link = await readlink(source.path);
             if (!dryRun) {
@@ -148,18 +151,18 @@ namespace copy {
         dereference?: boolean;
         preserveTimestamps?: boolean;
         dryRun?: boolean;
-        rename?: (source: Path, target: PathOption) => string | void | Promise<string | void>;
-        filter?: (source: Path, target: PathOption) => boolean | Promise<boolean>;
-        transform?: (data: Buffer, source: Path, target: PathOption) => Buffer | Promise<Buffer>;
-        afterEach?: (source: Path, target: Path) => void | Promise<void>;
+        rename?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => string | void | Promise<string | void>;
+        filter?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => boolean | Promise<boolean>;
+        transform?: (data: Buffer, source: FileInfo, target: FileInfoOption, options: copy.Options) => Buffer | Promise<Buffer>;
+        afterEach?: (source: FileInfo, target: FileInfoOption, options: copy.Options) => void | Promise<void>;
     };
 
-    export type Path = {
+    export type FileInfo = {
         path: string;
         stats: fs.Stats;
     };
 
-    export type PathOption = {
+    export type FileInfoOption = {
         path: string;
         stats?: fs.Stats;
     };

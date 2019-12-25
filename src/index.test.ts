@@ -457,14 +457,16 @@ describe('Options.afterEach', () => {
             size: 0
         };
         const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: (source, target) => {
-            if (target.stats.isDirectory()) {
-                actualTotals.directories += 1;
-            } else if (target.stats.isFile()) {
-                actualTotals.files += 1;
-                actualTotals.size += target.stats.size;
-            } else if (target.stats.isSymbolicLink()) {
-                actualTotals.symlinks += 1;
-                actualTotals.size += target.stats.size;
+            if (target.stats) {
+                if (target.stats.isDirectory()) {
+                    actualTotals.directories += 1;
+                } else if (target.stats.isFile()) {
+                    actualTotals.files += 1;
+                    actualTotals.size += target.stats.size;
+                } else if (target.stats.isSymbolicLink()) {
+                    actualTotals.symlinks += 1;
+                    actualTotals.size += target.stats.size;
+                }
             }
         }});
         expect(actualTotals).toEqual(expectedTotals);
@@ -479,17 +481,47 @@ describe('Options.afterEach', () => {
             size: 0
         };
         const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: async (source, target) => {
-            if (target.stats.isDirectory()) {
-                actualTotals.directories += 1;
-            } else if (target.stats.isFile()) {
-                actualTotals.files += 1;
-                actualTotals.size += target.stats.size;
-            } else if (target.stats.isSymbolicLink()) {
-                actualTotals.symlinks += 1;
-                actualTotals.size += target.stats.size;
+            if (target.stats) {
+                if (target.stats.isDirectory()) {
+                    actualTotals.directories += 1;
+                } else if (target.stats.isFile()) {
+                    actualTotals.files += 1;
+                    actualTotals.size += target.stats.size;
+                } else if (target.stats.isSymbolicLink()) {
+                    actualTotals.symlinks += 1;
+                    actualTotals.size += target.stats.size;
+                }
             }
         }});
         expect(actualTotals).toEqual(expectedTotals);
+    });
+
+    test('Should run afterEach on a dry run', async () => {
+        const tmp = await tempDir();
+        let visited = false;
+        const targetTotals: copy.Totals = {
+            directories: 0,
+            files: 0,
+            symlinks: 0,
+            size: 0
+        };
+        const sourceTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { dryRun: true, afterEach: (source, target) => {
+            visited = true;
+            if (target.stats) {
+                if (target.stats.isDirectory()) {
+                    targetTotals.directories += 1;
+                } else if (target.stats.isFile()) {
+                    targetTotals.files += 1;
+                    targetTotals.size += target.stats.size;
+                } else if (target.stats.isSymbolicLink()) {
+                    targetTotals.symlinks += 1;
+                    targetTotals.size += target.stats.size;
+                }
+            }
+        }});
+        expect(visited).toBeTruthy();
+        expect(sourceTotals).toEqual({ directories: 5, files: 3, symlinks: 3, size: 26 });
+        expect(targetTotals).toEqual({ directories: 0, files: 0, symlinks: 0, size: 0 });
     });
 
 });
