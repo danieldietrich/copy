@@ -147,20 +147,28 @@ type Totals = {
 
 Copy is a superset of fs-extra/copy. Option names and default values correspond to fs-extra/copy options.
 
-| Option | copy|
+| Option | Description |
 | -- | -- |
 | <tt>overwrite</tt> | Preserves exising files when set to <tt>false</tt>. Default: <tt>true</tt> |
 | <tt>errorOnExist</tt> | Used in conjunction with <tt>overwrite: false</tt>. Default: <tt>false</tt> |
 | <tt>dereference</tt> | Copies files if <tt>true</tt>. Default: <tt>false</tt> |
 | <tt>preserveTimestamps</tt> | Preserves the original timestamps. Default: <tt>false</tt> |
-| <tt>chown</tt><sup>*)</sup> | A [uid](https://en.wikipedia.org/wiki/User_identifier). Changes the owner (preserved by default). |
-| <tt>chgrp</tt><sup>*)</sup> | A [gid](https://en.wikipedia.org/wiki/Group_identifier). Changes the group (preserved by default). |
-| <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. Default: <tt>false</tt> |
+| <tt>chown</tt><sup>*)</sup> <strong>deprecated</strong> | A [uid](https://en.wikipedia.org/wiki/User_identifier). Changes the owner (preserved by default). |
+| <tt>chgrp</tt><sup>*)</sup> <strong>deprecated</strong> | A [gid](https://en.wikipedia.org/wiki/Group_identifier). Changes the group (preserved by default). |
+| <tt>dryRun</tt><sup>*)</sup> | Does not perform any write operations. <tt>afterEach</tt> is not called. Default: <tt>false</tt> |
 | <tt>filter</tt> | Optional path filter, sync or async. Paths are excluded when returning <tt>false</tt> and included on <tt>true</tt>. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 | <tt>rename</tt><sup>*)</sup> | Optional rename function, sync or async. A target path is renamed when returning a non-empty <tt>string</tt>, otherwise the original name is taken. When moving a directory to a different location, internally a recursive mkdir might be used. In such a case at least node [v10.12](https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V10.md#2018-10-10-version-10120-current-targos) is required. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 | <tt>transform</tt><sup>*)</sup> | Optional transformation of file contents, sync or async. There are five arguments: <tt>data</tt>, a <tt>Buffer</tt> containing the file contents, the <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
+| <tt>afterEach</tt><sup>*)</sup> | Optional action that is performed after a path has been copied, sync or async. There are four arguments: <tt>source</tt> path and the <tt>target</tt> path of type <tt>string</tt>, followed by the <tt>sourceStats</tt> and <tt>targetStats</tt> of type node <tt>fs.Stats</tt>. |
 
 *) fs-extra does not have this feature
+
+### Option precedence
+
+1. First, the target path is updated by calling the _rename_ function, if present. Please note that the current target path passed to the function.
+2. Then the optional _filter_ function is applied.
+3. Next, the optional _transform_ function is called.
+4. After the target has been written, the optional _afterEach_ function is called.
 
 ---
 
