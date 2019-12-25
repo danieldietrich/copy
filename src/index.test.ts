@@ -169,26 +169,6 @@ describe('Options.preserveTimestamps', () => {
 
 });
 
-describe('Options.chown', () => {
-
-    test('Should chown identity (current user)', async () => {
-        const tmp = await tempDir();
-        const uid = (await lstat(`${tmp}/src`)).uid;
-        await copy(`${tmp}/src`, `${tmp}/dst`, { chown: uid });
-    });
-
-});
-
-describe('Options.chgrp', () => {
-
-    test('Should chgrp identity (current group)', async () => {
-        const tmp = await tempDir();
-        const gid = (await lstat(`${tmp}/src`)).gid;
-        await copy(`${tmp}/src`, `${tmp}/dst`, { chgrp: gid });
-    });
-
-});
-
 describe('Options.dryRun', () => {
 
     test('Should perform a dyrun without writing anything', async () => {
@@ -204,16 +184,16 @@ describe('Options.filter', () => {
 
     test('Should filter links sync', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats) => {
-            return !sourceStats.isSymbolicLink();
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source) => {
+            return !source.stats.isSymbolicLink();
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 0, size: 11 });
     });
 
     test('Should filter links async', async () => {
         const tmp = await tempDir();
-        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source, target, sourceStats) => {
-            return Promise.resolve(!sourceStats.isSymbolicLink());
+        const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { filter: (source) => {
+            return Promise.resolve(!source.stats.isSymbolicLink());
         }});
         expect(totals).toEqual({ directories: 5, files: 3, symlinks: 0, size: 11 });
     });
@@ -239,8 +219,8 @@ describe('Options.rename', () => {
     test('Should rename file sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/f3')) {
-                return path.join(path.dirname(target), 'f3foo');
+            if (target.path.endsWith('/f3')) {
+                return path.join(path.dirname(target.path), 'f3foo');
             }
             return;
         }});
@@ -253,8 +233,8 @@ describe('Options.rename', () => {
     test('Should rename file async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/f3')) {
-                return Promise.resolve(path.join(path.dirname(target), 'f3foo'));
+            if (target.path.endsWith('/f3')) {
+                return Promise.resolve(path.join(path.dirname(target.path), 'f3foo'));
             }
             return;
         }});
@@ -267,8 +247,8 @@ describe('Options.rename', () => {
     test('Should rename symlink sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/l1')) {
-                return path.join(path.dirname(target), 'l1foo');
+            if (target.path.endsWith('/l1')) {
+                return path.join(path.dirname(target.path), 'l1foo');
             }
             return;
         }});
@@ -281,8 +261,8 @@ describe('Options.rename', () => {
     test('Should rename symlink async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/l1')) {
-                return Promise.resolve(path.join(path.dirname(target), 'l1foo'));
+            if (target.path.endsWith('/l1')) {
+                return Promise.resolve(path.join(path.dirname(target.path), 'l1foo'));
             }
             return;
         }});
@@ -309,7 +289,7 @@ describe('Options.rename', () => {
     test('Should not rename file if falsy', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/f3')) {
+            if (target.path.endsWith('/f3')) {
                 return '';
             }
             return;
@@ -323,8 +303,8 @@ describe('Options.rename', () => {
     test('Should rename directory sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d1')) {
-                return path.join(path.dirname(target), 'd1foo');
+            if (target.path.endsWith('/d1')) {
+                return path.join(path.dirname(target.path), 'd1foo');
             }
             return;
         }});
@@ -337,8 +317,8 @@ describe('Options.rename', () => {
     test('Should rename directory async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d1')) {
-                return Promise.resolve(path.join(path.dirname(target), 'd1foo'));
+            if (target.path.endsWith('/d1')) {
+                return Promise.resolve(path.join(path.dirname(target.path), 'd1foo'));
             }
             return;
         }});
@@ -351,7 +331,7 @@ describe('Options.rename', () => {
     test('Should move directory when renaming sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d1')) {
+            if (target.path.endsWith('/d1')) {
                 return `${tmp}/dst/foo/d1`;
             }
             return;
@@ -366,7 +346,7 @@ describe('Options.rename', () => {
     test('Should move directory when renaming async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d1')) {
+            if (target.path.endsWith('/d1')) {
                 return Promise.resolve(`${tmp}/dst/foo/d1`);
             }
             return;
@@ -381,8 +361,8 @@ describe('Options.rename', () => {
     test('Should break symlink when renaming linked directory sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d3')) {
-                return path.join(path.dirname(target), 'd3foo');
+            if (target.path.endsWith('/d3')) {
+                return path.join(path.dirname(target.path), 'd3foo');
             }
             return;
         }});
@@ -396,8 +376,8 @@ describe('Options.rename', () => {
     test('Should break symlink when renaming linked directory async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { rename: (source, target) => {
-            if (target.endsWith('/d3')) {
-                return Promise.resolve(path.join(path.dirname(target), 'd3foo'));
+            if (target.path.endsWith('/d3')) {
+                return Promise.resolve(path.join(path.dirname(target.path), 'd3foo'));
             }
             return;
         }});
@@ -415,7 +395,7 @@ describe('Options.transform', () => {
     test('Should transform file sync', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
-            if (target.endsWith('/f3')) {
+            if (target.path.endsWith('/f3')) {
                 return Buffer.from("3️⃣", 'utf8');
             } else {
                 return data;
@@ -427,7 +407,7 @@ describe('Options.transform', () => {
     test('Should transform file async', async () => {
         const tmp = await tempDir();
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
-            if (target.endsWith('/f3')) {
+            if (target.path.endsWith('/f3')) {
                 return Promise.resolve(Buffer.from("3️⃣", 'utf8'));
             } else {
                 return Promise.resolve(data);
@@ -441,7 +421,7 @@ describe('Options.transform', () => {
         await copy(`${tmp}/src`, `${tmp}/dst`);
         // intentionally copying again, overwrite is true by default
         const totals = await copy(`${tmp}/src`, `${tmp}/dst`, { transform: (data, source, target) => {
-            if (target.endsWith('/f3')) {
+            if (target.path.endsWith('/f3')) {
                 return Buffer.from("3️⃣", 'utf8');
             } else {
                 return data;
@@ -476,15 +456,15 @@ describe('Options.afterEach', () => {
             symlinks: 0,
             size: 0
         };
-        const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: (source, target, sourceStats, targetStats) => {
-            if (targetStats.isDirectory()) {
+        const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: (source, target) => {
+            if (target.stats.isDirectory()) {
                 actualTotals.directories += 1;
-            } else if (targetStats.isFile()) {
+            } else if (target.stats.isFile()) {
                 actualTotals.files += 1;
-                actualTotals.size += targetStats.size;
-            } else if (targetStats.isSymbolicLink()) {
+                actualTotals.size += target.stats.size;
+            } else if (target.stats.isSymbolicLink()) {
                 actualTotals.symlinks += 1;
-                actualTotals.size += targetStats.size;
+                actualTotals.size += target.stats.size;
             }
         }});
         expect(actualTotals).toEqual(expectedTotals);
@@ -498,15 +478,15 @@ describe('Options.afterEach', () => {
             symlinks: 0,
             size: 0
         };
-        const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: async (source, target, sourceStats, targetStats) => {
-            if (targetStats.isDirectory()) {
+        const expectedTotals = await copy(`${tmp}/src`, `${tmp}/dst`, { afterEach: async (source, target) => {
+            if (target.stats.isDirectory()) {
                 actualTotals.directories += 1;
-            } else if (targetStats.isFile()) {
+            } else if (target.stats.isFile()) {
                 actualTotals.files += 1;
-                actualTotals.size += targetStats.size;
-            } else if (targetStats.isSymbolicLink()) {
+                actualTotals.size += target.stats.size;
+            } else if (target.stats.isSymbolicLink()) {
                 actualTotals.symlinks += 1;
-                actualTotals.size += targetStats.size;
+                actualTotals.size += target.stats.size;
             }
         }});
         expect(actualTotals).toEqual(expectedTotals);

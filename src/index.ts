@@ -13,7 +13,6 @@ import { promisify } from 'util';
 async function copy(sourcePath: string, targetPath: string, options?: copy.Options): Promise<copy.Totals> {
 
     // promisify all the things as long as fs.promises is stage-1 experimental
-    const lchown = promisify(fs.lchown);
     const copyFile = promisify(fs.copyFile);
     const lstat = promisify(fs.lstat);
     const mkdir = promisify(fs.mkdir);
@@ -34,7 +33,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         dryRun: false,
     };
 
-    const { overwrite, errorOnExist, dereference, preserveTimestamps, chown, chgrp, dryRun, filter, rename, transform, afterEach } = Object.assign(defaultOptions, options);
+    const { overwrite, errorOnExist, dereference, preserveTimestamps, dryRun, rename, filter, transform, afterEach } = Object.assign(defaultOptions, options);
     const flag = overwrite ? 'w' : 'wx'; // fs file system flags
     const [directories, files, symlinks, size] = await cpPath(sourcePath, targetPath, [0, 0, 0, 0]);
 
@@ -45,44 +44,39 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         size,
     };
 
-    async function cpPath(source: string, _target: string, subTotals: SubTotals): Promise<SubTotals> {
-
-        const sourceStats = await lstat(source);
-        const _targetStats = await lstat(_target).catch(ENOENT); // undefined if not exists
-        const target = rename && await Promise.resolve(rename(source, _target, sourceStats, _targetStats)) || _target;
-        const targetStats = await lstat(target).catch(ENOENT) || _targetStats;
-
-        if (!filter || await Promise.resolve(filter(source, target, sourceStats, targetStats))) {
-            if (errorOnExist && targetStats && !overwrite) {
+    async function cpPath(src: string, dst: string, subTotals: SubTotals): Promise<SubTotals> {
+        const source: copy.Path = { path: src, stats: await lstat(src) };
+        const target: copy.PathOption = { path: dst, stats: await lstat(dst).catch(ENOENT) };
+        if (rename) {
+            target.path = await Promise.resolve(rename(source, target)) || target.path;
+            target.stats = await lstat(target.path).catch(ENOENT) || target.stats;
+        }
+        if (!filter || await Promise.resolve(filter(source, target))) {
+            if (errorOnExist && target.stats && !overwrite) {
                 throw Error(`target already exists: ${target}`);
             }
-            if (sourceStats.isFile() || (dereference && sourceStats.isSymbolicLink())) {
-                const fileSize = await cpFile(source, target, sourceStats, targetStats);
+            if (source.stats.isFile() || (dereference && source.stats.isSymbolicLink())) {
+                const fileSize = await cpFile(source, target);
                 subTotals[1] += 1;
                 subTotals[3] += fileSize; // subTotals[3] += await cpFile(...) leads to race conditions!
-            } else if (sourceStats.isDirectory()) {
+            } else if (source.stats.isDirectory()) {
                 subTotals[0] += 1; // don't counting directory size produces the same result as macOS "Get info" on a folder
-                await cpDir(source, target, sourceStats, targetStats, subTotals);
-            } else if (sourceStats.isSymbolicLink()) {
-                const symlinkSize = await cpSymlink(source, target, sourceStats, targetStats);
+                await cpDir(source, target, subTotals);
+            } else if (source.stats.isSymbolicLink()) {
+                const symlinkSize = await cpSymlink(source, target);
                 subTotals[2] += 1;
                 subTotals[3] += symlinkSize; // subTotals[3] += await cpSymlink(...) leads to race conditions!
             }
             if (!dryRun) {
-                if (preserveTimestamps && (!targetStats || overwrite)) {
+                if (preserveTimestamps && (!target.stats || overwrite)) {
                     // see https://github.com/nodejs/node/issues/16695
-                    if (!sourceStats.isSymbolicLink()) {
-                        await utimes(target, sourceStats.atime, sourceStats.mtime);
+                    if (!source.stats.isSymbolicLink()) {
+                        await utimes(target.path, source.stats.atime, source.stats.mtime);
                     }
                 }
-                // DEPRECATED -->
-                if (chown || chgrp) {
-                    await lchown(target, chown || sourceStats.uid, chgrp || sourceStats.gid);
-                }
-                // <-- DEPRECATED
                 if (afterEach) {
-                    const updatedTargetStats = targetStats || await lstat(target).catch(ENOENT);
-                    await Promise.resolve(afterEach(source, target, sourceStats, updatedTargetStats!));
+                    target.stats = target.stats || await lstat(target.path).catch(ENOENT);
+                    await Promise.resolve(afterEach(source, target as copy.Path)); // target.stats exist after copy
                 }
             }
         }
@@ -90,44 +84,44 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         return subTotals;
     }
 
-    async function cpDir(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined, subTotals: SubTotals) {
-        if (!dryRun && !targetStats) {
-            await mkdir(target, { recursive: true, mode: sourceStats.mode });
+    async function cpDir(source: copy.Path, target: copy.PathOption, subTotals: SubTotals) {
+        if (!dryRun && !target.stats) {
+            await mkdir(target.path, { recursive: true, mode: source.stats.mode });
         }
         await Promise.all( // much faster than for-of loop
-            (await readdir(source)).map(async child =>
-                cpPath(path.join(source, child), path.join(target, child), subTotals),
+            (await readdir(source.path)).map(async child =>
+                cpPath(path.join(source.path, child), path.join(target.path, child), subTotals),
             ),
         );
     }
 
-    async function cpFile(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined): Promise<number> {
+    async function cpFile(source: copy.Path, target: copy.PathOption): Promise<number> {
         if (transform) {
-            const data = await Promise.resolve(transform(await readFile(source), source, target, sourceStats, targetStats));
-            if (!dryRun && (!targetStats || overwrite)) {
-                await writeFile(target, data, { mode: sourceStats.mode, flag });
+            const data = await Promise.resolve(transform(await readFile(source.path), source, target));
+            if (!dryRun && (!target.stats || overwrite)) {
+                await writeFile(target.path, data, { mode: source.stats.mode, flag });
             }
             return data.length; // transformed file size
-        } else if (!targetStats || overwrite) {
+        } else if (!target.stats || overwrite) {
             if (!dryRun) {
-                await copyFile(source, target);
+                await copyFile(source.path, target.path);
             }
-            return sourceStats.size;
+            return source.stats.size;
         } else {
             return 0;
         }
     }
 
-    async function cpSymlink(source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined): Promise<number> {
-        if (!targetStats || overwrite) {
-            const link = await readlink(source);
+    async function cpSymlink(source: copy.Path, target: copy.PathOption): Promise<number> {
+        if (!target.stats || overwrite) {
+            const link = await readlink(source.path);
             if (!dryRun) {
-                if (targetStats) {
-                    await unlink(target); // fails if target is a dir
+                if (target.stats) {
+                    await unlink(target.path); // fails if target is a dir
                 }
-                await symlink(link, target);
+                await symlink(link, target.path);
             }
-            return sourceStats.size; // we assume that a symlink size does not change
+            return source.stats.size; // we assume that a symlink size does not change
         } else {
             return 0;
         }
@@ -153,13 +147,21 @@ namespace copy {
         errorOnExist?: boolean;
         dereference?: boolean;
         preserveTimestamps?: boolean;
-        chown?: number; // DEPRECATED
-        chgrp?: number; // DEPRECATED
         dryRun?: boolean;
-        filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
-        rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string | void>;
-        transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
-        afterEach?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats) => void | Promise<void>;
+        rename?: (source: Path, target: PathOption) => string | void | Promise<string | void>;
+        filter?: (source: Path, target: PathOption) => boolean | Promise<boolean>;
+        transform?: (data: Buffer, source: Path, target: PathOption) => Buffer | Promise<Buffer>;
+        afterEach?: (source: Path, target: Path) => void | Promise<void>;
+    };
+
+    export type Path = {
+        path: string;
+        stats: fs.Stats;
+    };
+
+    export type PathOption = {
+        path: string;
+        stats?: fs.Stats;
     };
 
     export type Totals = {
