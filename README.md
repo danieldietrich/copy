@@ -104,7 +104,7 @@ const path = require('path');
         }
     };
 
-    // transform the contents of all index.mjs files to upper case
+    // log some information about copied files
     const afterEach = (source, target) => {
         if (target.stats.isDirectory()) {
             console.log(`Created ${target.path}`);
