@@ -17,13 +17,14 @@ The copy tool recursively copies files, directories and links from a source dire
 Features:
 
 * Renaming and moving files and directories
-* Transformation of file contents
 * Filtering paths
+* Transformation of file contents
+* Performing actions after each path has been copied
 * Preserving user permissions
 * Overwriting or keeping existing files
 * Creating or dereferencing links
 * Preserving original timestamps
-* Changing owner and group
+* Changing owner and group (**deprecated**, use _afterEach_ instead)
 * Collecting results (size & number of directories, files and links)
 * Performing a dry run without writing files
 * May be used as drop-in for [fs-extra/copy](https://github.com/jprichardson/node-fs-extra/blob/HEAD/docs/copy.md), see [Options](#options)
@@ -127,12 +128,13 @@ type Options = {
     errorOnExist?: boolean;
     dereference?: boolean;
     preserveTimestamps?: boolean;
-    chown?: number;
-    chgrp?: number;
+    chown?: number; // DEPRECATED
+    chgrp?: number; // DEPRECATED
     dryRun?: boolean;
     filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
     rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string | void>;
     transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
+    afterEach?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats) => void | Promise<void>;
 };
 
 type Totals = {
