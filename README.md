@@ -72,7 +72,11 @@ _Totals_ contains information about the copy operation:
 
 The _number_ of directories, files and symlinks corresponds to the source. The _size_ reflects the number of written bytes. In particular, the size might be smaller than the source, if existing files are not ovewritten.
 
-A few more examples:
+## Examples
+
+### Using copy operations
+
+See also [option precedence](#option-precedence).
 
 ```ts
 const copy = require('@danieldietrich/copy');
@@ -126,6 +130,51 @@ const path = require('path');
     console.log('Totals:', totals);
 
 })();
+```
+
+### Changing file attributes
+
+In the following example we change the file owner uid. A chgrp or chmod may be performed in a similar way.
+
+```ts
+import { promisify } from 'util';
+
+// or simply fs.promises.lchown
+const lchown = promisify(fs.promises.lchown);
+
+async function changeOwner(src: string, dst: string, uid: number) {
+    copy(src, dst, {
+        afterEach: async (source, target) => {
+            lchown(target.path, uid, source.stats.gid);
+        }
+    });
+}
+```
+
+### Implementing a progress indicator
+
+```ts
+async function copyWithProgress(src: string, dst: string, callback: (curr: copy.Totals, sum: copy.Totals) => void) {
+    const curr: copy.Totals = {
+        directories: 0,
+        files: 0,
+        symlinks: 0,
+        size: 0
+    };
+    const sum = await copy(src, dst, { dryRun: true });
+    copy(src, dst, { afterEach: (source) => {
+        if (source.stats.isDirectory()) {
+            curr.directories += 1;
+        } else if (source.stats.isFile()) {
+            curr.files += 1;
+            curr.size += source.stats.size;
+        } else if (source.stats.isSymbolicLink()) {
+            curr.symlinks += 1;
+            curr.size += source.stats.size;
+        }
+        callback(curr, sum);
+    }});
+}
 ```
 
 ## API
