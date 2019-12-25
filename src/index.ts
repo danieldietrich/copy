@@ -34,7 +34,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         dryRun: false,
     };
 
-    const { overwrite, errorOnExist, dereference, preserveTimestamps, chown, chgrp, dryRun, filter, rename, transform } = Object.assign(defaultOptions, options);
+    const { overwrite, errorOnExist, dereference, preserveTimestamps, chown, chgrp, dryRun, filter, rename, transform, afterEach } = Object.assign(defaultOptions, options);
     const flag = overwrite ? 'w' : 'wx'; // fs file system flags
     const [directories, files, symlinks, size] = await cpPath(sourcePath, targetPath, [0, 0, 0, 0]);
 
@@ -50,7 +50,7 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
         const sourceStats = await lstat(source);
         const _targetStats = await lstat(_target).catch(ENOENT); // undefined if not exists
         const target = rename && await Promise.resolve(rename(source, _target, sourceStats, _targetStats)) || _target;
-        const targetStats = target && await lstat(target).catch(ENOENT) || _targetStats;
+        const targetStats = await lstat(target).catch(ENOENT) || _targetStats;
 
         if (!filter || await Promise.resolve(filter(source, target, sourceStats, targetStats))) {
             if (errorOnExist && targetStats && !overwrite) {
@@ -70,13 +70,19 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
             }
             if (!dryRun) {
                 if (preserveTimestamps && (!targetStats || overwrite)) {
-                    // see https://github.com/nodejs/node-v0.x-archive/issues/2142
+                    // see https://github.com/nodejs/node/issues/16695
                     if (!sourceStats.isSymbolicLink()) {
                         await utimes(target, sourceStats.atime, sourceStats.mtime);
                     }
                 }
+                // DEPRECATED -->
                 if (chown || chgrp) {
                     await lchown(target, chown || sourceStats.uid, chgrp || sourceStats.gid);
+                }
+                // <-- DEPRECATED
+                if (afterEach) {
+                    const updatedTargetStats = targetStats || await lstat(target).catch(ENOENT);
+                    await Promise.resolve(afterEach(source, target, sourceStats, updatedTargetStats!));
                 }
             }
         }
@@ -147,12 +153,13 @@ namespace copy {
         errorOnExist?: boolean;
         dereference?: boolean;
         preserveTimestamps?: boolean;
-        chown?: number;
-        chgrp?: number;
+        chown?: number; // DEPRECATED
+        chgrp?: number; // DEPRECATED
         dryRun?: boolean;
         filter?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => boolean | Promise<boolean>;
         rename?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => string | void | Promise<string | void>;
         transform?: (data: Buffer, source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats | undefined) => Buffer | Promise<Buffer>;
+        afterEach?: (source: string, target: string, sourceStats: fs.Stats, targetStats: fs.Stats) => void | Promise<void>;
     };
 
     export type Totals = {
