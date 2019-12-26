@@ -61,8 +61,8 @@ async function copy(sourcePath: string, targetPath: string, options?: copy.Optio
                 subTotals[1] += 1;
                 subTotals[3] += fileSize; // subTotals[3] += await cpFile(...) leads to race conditions!
             } else if (source.stats.isDirectory()) {
-                subTotals[0] += 1; // don't counting directory size produces the same result as macOS "Get info" on a folder
                 await cpDir(source, target, subTotals);
+                subTotals[0] += 1; // don't counting directory size produces the same result as macOS "Get info" on a folder
             } else if (source.stats.isSymbolicLink()) {
                 const symlinkSize = await cpSymlink(source, target);
                 subTotals[2] += 1;
