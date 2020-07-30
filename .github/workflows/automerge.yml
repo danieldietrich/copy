@@ -1,0 +1,23 @@
+on: pull_request
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - uses: actions/github-script@v2
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const { repository: repo, pull_request: pr } = context.payload
+            github.pulls.createReview({
+              owner: repo.owner.login,
+              repo: repo.name,
+              pull_number: pr.number,
+              event: 'APPROVE'
+            })
+            github.pulls.merge({
+              owner: repo.owner.login,
+              repo: repo.name,
+              pull_number: pr.number
+            })
